@@ -11,21 +11,22 @@ import (
 
 var bot *tgbotapi.BotAPI
 
-func InitBot() {
+func InitBot() error {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Ошибка загрузки .env файла")
+		return fmt.Errorf("Ошибка загрузки .env файла")
 	}
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
-		log.Fatal("Токен не найден в .env файле")
+		return fmt.Errorf("Токен не найден в .env файле")
 	}
 	bot, err = tgbotapi.NewBotAPI(token)
 	if err != nil {
-		log.Fatalf("Ошибка инициализации бота: %v", err)
+		return fmt.Errorf("Ошибка инициализации бота: %v", err)
 	}
 	bot.Debug = false
-	fmt.Println("Бот успешно запущен!")
+	log.Println("Бот успешно запущен!")
+	return nil
 }
 
 func TgAPI_SendMessage(chatID int64, message string) (bool, error) {
@@ -35,6 +36,5 @@ func TgAPI_SendMessage(chatID int64, message string) (bool, error) {
 		log.Printf("Ошибка отправки сообщения: %v\n", err)
 		return false, err
 	}
-	fmt.Printf("Сообщение отправлено: %s\n", message)
 	return true, nil
 }

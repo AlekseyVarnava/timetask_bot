@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -69,7 +70,7 @@ func getUserInfo(userId string) error {
 		return fmt.Errorf("could not unmarshal user info response: %v", err)
 	}
 
-	fmt.Printf("User Info: %+v\n", userInfo)
+	log.Printf("User Info: %+v\n", userInfo)
 	return nil
 }
 

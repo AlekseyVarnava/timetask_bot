@@ -4,6 +4,7 @@ import (
 	"TimeTaskBot/internal/apitimetask"
 	"TimeTaskBot/internal/utils"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -41,38 +42,32 @@ func returnTelegramUsers() {
 	for {
 		telegramUsersNew, err := apitimetask.GetTelegramUsers()
 		if err != nil {
-			fmt.Printf("Ошибка получения пользователей зарегистрированных в Телеграм: %v\n", err)
+			log.Printf("Ошибка получения пользователей зарегистрированных в Телеграм: %v\n", err)
 			time.Sleep(time.Minute * 20)
 			continue
 		}
 		for i, user := range *telegramUsersNew {
 			timeZone, err := parseStringToTimeDuration(user.TimeZoneOffset)
 			if err != nil {
-				fmt.Printf("Ошибка парсинга часового пояса: %v\n", err)
+				log.Printf("Ошибка парсинга часового пояса: %v\n", err)
 				continue
 			}
 			(*telegramUsersNew)[i].TimeZoneTimeDutation = timeZone
 		}
 		// if len(telegramUsers) != len(telegramUsersNew) { // подумать тут, он не будет обновлять если юзер сменил часовой пояс
-		// 	fmt.Println("Найдены новые пользователи Telegram, список пользователей обновлён")
+		// 	log.Println("Найдены новые пользователи Telegram, список пользователей обновлён")
 		telegramUsers = telegramUsersNew
 		// }
-		fmt.Println("Telegram users:", telegramUsers)
+		log.Println("Telegram users:", telegramUsers)
 		time.Sleep(time.Minute * 5)
 	}
 }
 
 func returnTaskInfo() {
 	for _, telegramUser := range *telegramUsers {
-		fmt.Println("sliceTask contents:")
-		sliceTask.Range(func(key, value interface{}) bool {
-			fmt.Printf("Key: %v, Value: %v\n", key, value)
-			return true // продолжить обход
-		})
-
 		taskInfoNew, err := apitimetask.GetTaskInfo(telegramUser.UserID)
 		if err != nil {
-			fmt.Printf("Ошибка получения информации о задаче: %v\n", err)
+			log.Printf("Ошибка получения информации о задаче: %v\n", err)
 			continue
 		}
 		for _, task := range taskInfoNew {
@@ -85,7 +80,7 @@ func returnTaskInfo() {
 
 			taskTime, boolSend, err := parseDateTime(task.Date, task.Time)
 			if err != nil {
-				fmt.Printf("Ошибка разбора даты и времени: %v\n", err)
+				log.Printf("Ошибка разбора даты и времени: %v\n", err)
 				continue
 			} else if !boolSend {
 				continue // время не указано, отправлять уведомление не надо
@@ -108,11 +103,10 @@ func returnTaskInfo() {
 	}
 }
 
-func scheduleMessage(taskID int, chatID string, taskInfo utils.TaskInfoResponseOne, notificationTime time.Time) {
-	fmt.Printf("Для задачи taskID:`%d`, chatID:`%s` уведомление будет отправлено: %v\n", taskID, chatID, notificationTime)
+func scheduleMessage(taskID int, chatID string, taskInfo utils.TaskInfoResponseOne, notificationTime time.Time) {	
 	delay := time.Until(notificationTime)
 	if delay < 0 {
-		fmt.Printf("Время уведомления для задачи %d уже прошло\n", taskID)
+		log.Printf("Время уведомления для задачи %d уже прошло\n", taskID)
 		return
 	}
 
@@ -121,34 +115,29 @@ func scheduleMessage(taskID int, chatID string, taskInfo utils.TaskInfoResponseO
 
 	select {
 	case <-timer.C:
-		value, exists  := sliceTask.Load(taskID)
+		value, exists := sliceTask.Load(taskID)
 		if exists && value == true {
 			return // Уведомление уже отправлено
 		}
 
 		chatIDInt64, err := StringToInt64(chatID)
 		if err != nil {
-			fmt.Printf("Ошибка преобразования ChatID: %v\n", err)
+			log.Printf("Ошибка преобразования ChatID: %v\n", err)
 			return
 		}
-		var message string
-		switch taskInfo.Description {
-		case "":
-			message = fmt.Sprintf("⏰ Напоминание\nЗадача: %s\n• Дата: %s\n• Время: %s\n• Ссылка на задачу: https://demo.timetask.ru/%d",
-				taskInfo.Title, taskInfo.Date, taskInfo.Time, taskID)
-		default:
-			message = fmt.Sprintf("⏰ Напоминание\nЗадача: %s\nОписание: %s\n• Дата: %s\n• Время: %s\n• Ссылка на задачу: https://demo.timetask.ru/%d",
-				taskInfo.Title, taskInfo.Description, taskInfo.Date, taskInfo.Time, taskID)
-		}
-		sendMessage(taskID, chatIDInt64, message)
+		message := formatMessage(taskInfo, taskID)
+		log.Printf("Для задачи taskID:`%d`, chatID:`%s` уведомление будет отправлено: %v\n", taskID, chatID, notificationTime)
+		sendMessage(chatIDInt64, taskID, message)
 	}
 }
 
-func sendMessage(taskID int, chatID int64, message string) {
+func sendMessage(chatID int64, taskID int, message string) {
 	for i := 0; i < utils.RetriesSendMessage; i++ {
 		ok, err := telegram.TgAPI_SendMessage(chatID, message)
 		if ok && err == nil {
+			log.Printf("Сообщение отправлено chatID:`%d`, taskID:`%d`\n", chatID, taskID)
 			sliceTask.Store(taskID, true)
+			return
 		}
 		time.Sleep(utils.DelayRetriesSendMessage)
 	}
@@ -196,4 +185,17 @@ func parseStringToTimeDuration(timeStr string) (time.Duration, error) {
 	}
 
 	return hours, nil
+}
+
+func formatMessage(taskInfo utils.TaskInfoResponseOne, taskID int) string {
+	var message string
+	switch taskInfo.Description {
+	case "":
+		message = fmt.Sprintf("⏰ Напоминание\nЗадача: %s\n• Дата: %s\n• Время: %s\n• Ссылка на задачу: https://demo.timetask.ru/%d/modal=true",
+			taskInfo.Title, taskInfo.Date, taskInfo.Time, taskID)
+	default:
+		message = fmt.Sprintf("⏰ Напоминание\nЗадача: %s\nОписание: %s\n• Дата: %s\n• Время: %s\n• Ссылка на задачу: https://demo.timetask.ru/%d/modal=true",
+			taskInfo.Title, taskInfo.Description, taskInfo.Date, taskInfo.Time, taskID)
+	}
+	return message
 }

@@ -27,7 +27,7 @@ func Auth() {
 
 	err := login()
 	if err != nil {
-		fmt.Printf("Ошибка авторизации, err: %v\n", err)
+		log.Printf("Ошибка авторизации, err: %v\n", err)
 		return
 	}
 	// Обновление токена каждые 290 секунд
@@ -35,15 +35,15 @@ func Auth() {
 		var countFail uint8
 		time.Sleep(290 * time.Second)
 		for countFail < 10 {
-			// fmt.Println("Обновление токена, запуск")
+			// log.Println("Обновление токена, запуск")
 			err := refreshAuthToken()
 			if err != nil {
-				fmt.Printf("Ошибка обновления токена, err: %v\n", err)
+				log.Printf("Ошибка обновления токена, err: %v\n", err)
 				countFail++
 				time.Sleep(10 * time.Second)
 				continue
 			}
-			// fmt.Println("Токен успешно обновлён")
+			// log.Println("Токен успешно обновлён")
 			time.Sleep(290 * time.Second)
 		}
 		Auth() // заново авторизуемся, если countFail увеличился до 10
@@ -83,7 +83,7 @@ func login() error {
 	utils.RefreshToken = loginResponse.RefreshToken
 	TokenMutex.Unlock()
 
-	fmt.Println("Logged in successfully.")
+	log.Println("Logged in successfully.")
 	return nil
 }
 
@@ -128,6 +128,6 @@ func refreshAuthToken() error {
 	utils.RefreshToken = refreshResponse.RefreshToken
 	TokenMutex.Unlock()
 
-	// fmt.Println("Token refreshed successfully.")
+	// log.Println("Token refreshed successfully.")
 	return nil
 }
