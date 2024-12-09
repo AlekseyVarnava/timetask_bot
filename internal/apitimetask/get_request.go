@@ -91,7 +91,7 @@ func GetTaskInfo(userId string) (utils.TaskInfoResponse, error) {
 	var taskInfo utils.TaskInfoResponse
 	err = json.Unmarshal(body, &taskInfo)
 	if err != nil {
-		return nil, fmt.Errorf("GetTaskInfo ошибка unmarshal: %v", err)
+		return nil, fmt.Errorf("GetTaskInfo ошибка unmarshal: %v, responseBody:%v", err, string(body))
 	}
 	// if len(taskInfo) > 0 {
 	// 	fmt.Println("Task Info:", taskInfo)

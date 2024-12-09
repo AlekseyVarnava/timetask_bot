@@ -23,18 +23,18 @@ var (
 	// интервалы уведомлений
 	NotificationOneDay = NotificationIntervals{
 		TimeStr: "1440",
-		TimeDur: 1440,
+		TimeDur: 1440 * time.Minute,
 	}
 	Notification12Hours = NotificationIntervals{
 		TimeStr: "720",
-		TimeDur: 720,
+		TimeDur: 720 * time.Minute,
 	}
 	Notification1Hour = NotificationIntervals{
 		TimeStr: "60",
-		TimeDur: 60,
+		TimeDur: 60 * time.Minute,
 	}
 	Notification30Mins = NotificationIntervals{
 		TimeStr: "30",
-		TimeDur: 30,
+		TimeDur: 30 * time.Minute,
 	}
 )
