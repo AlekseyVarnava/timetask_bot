@@ -1,12 +1,17 @@
 package utils
 
+import "time"
+
 const (
-	MaxGoroutines_returnTaskInfo int = 3
-	GetTelegramUsersURL              = "https://api-demo.timetask.ru/api/Telegram/Users"
-	PostLoginURL                     = "https://api-demo.timetask.ru/api/Account/Login"
-	GetRefreshURL                    = "https://api-demo.timetask.ru/api/Account/refresh"
-	BaseUserInfoURL                  = "https://api-demo.timetask.ru/api/Account/User?"
-	BaseTaskURL                      = "https://api-demo.timetask.ru/api/Task?"
+	GetTelegramUsersURL = "https://api-demo.timetask.ru/api/Telegram/Users"
+	PostLoginURL        = "https://api-demo.timetask.ru/api/Account/Login"
+	GetRefreshURL       = "https://api-demo.timetask.ru/api/Account/refresh"
+	BaseUserInfoURL     = "https://api-demo.timetask.ru/api/Account/User?"
+	BaseTaskURL         = "https://api-demo.timetask.ru/api/Task?"
+
+	MaxGoroutines_returnTaskInfo int           = 3 // кол-во макс горутин для returnTaskInfo
+	RetriesSendMessage           int         = 2 // кол-во попыток повторной отправки сообщения
+	DelayRetriesSendMessage      time.Duration = 2 * time.Second
 )
 
 var (

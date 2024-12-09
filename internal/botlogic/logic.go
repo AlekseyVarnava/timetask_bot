@@ -83,9 +83,11 @@ func returnTaskInfo() {
 			sliceTask[taskID] = false
 			taskMutex.Unlock()
 
-			taskTime, err := parseDateTime(taskInfoNew[j].Date, taskInfoNew[j].Time)
+			taskTime, boolSend, err := parseDateTime(taskInfoNew[j].Date, taskInfoNew[j].Time)
 			if err != nil {
 				fmt.Printf("Ошибка разбора даты и времени: %v\n", err)
+				continue
+			} else if !boolSend {
 				continue
 			}
 
@@ -145,20 +147,14 @@ func scheduleMessage(taskID uint32, chatID string, taskInfo utils.TaskInfoRespon
 }
 
 func sendMessage(taskID uint32, chatID int64, message string) {
-	ok, err := telegram.TgAPI_SendMessage(chatID, message)
-	if ok && err == nil {
-		taskMutex.Lock()
-		sliceTask[taskID] = true
-		taskMutex.Unlock()
-	} else {
-		fmt.Printf("Повторная попытка отправки сообщения. taskID: %d, chatID: %d\n", taskID, chatID)
-		time.Sleep(time.Second * 2)
+	for i := 0; i < utils.RetriesSendMessage; i++ {
 		ok, err := telegram.TgAPI_SendMessage(chatID, message)
 		if ok && err == nil {
 			taskMutex.Lock()
 			sliceTask[taskID] = true
 			taskMutex.Unlock()
 		}
+		time.Sleep(utils.DelayRetriesSendMessage)
 	}
 }
 
@@ -170,21 +166,24 @@ func StringToInt64(input string) (int64, error) {
 	return result, nil
 }
 
-func parseDateTime(dateStr, timeStr string) (time.Time, error) {
-	// Предполагается формат: "YYYY-MM-DD" и "HH:MM"
+func parseDateTime(dateStr, timeStr string) (time.Time, bool, error) {
+	// Предполагается формат: "YYYY.MM.DD" и "HH:MM"
 	const dateFormat = "02.01.2006"
 	const timeFormat = "15:04"
 	date, err := time.Parse(dateFormat, dateStr)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, false, err
+	}
+	if timeStr == "" {
+		return date, false, nil
 	}
 	parsedTime, err := time.Parse(timeFormat, timeStr)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, false, err
 	}
 	// Объединяем дату и время
 	return time.Date(date.Year(), date.Month(), date.Day(),
-		parsedTime.Hour(), parsedTime.Minute(), 0, 0, time.Local), nil
+		parsedTime.Hour(), parsedTime.Minute(), 0, 0, time.Local), true, nil
 }
 
 func parseStringToTimeDuration(timeStr string) (time.Duration, error) {
