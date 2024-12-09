@@ -102,7 +102,7 @@ func returnTaskInfo() {
 			if !ok {
 				interval = 60 * time.Minute // Интервал по умолчанию
 			}
-			notificationTime = taskTime.Add(-interval).Add(telegramUser.TimeZoneTimeDutation)
+			notificationTime = taskTime.Add(interval).Add(-telegramUser.TimeZoneTimeDutation)
 			go scheduleMessage(task.ID, telegramUser.ChatID, task, notificationTime)
 		}
 	}
