@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"TimeTaskBot/internal/authorization"
 	"TimeTaskBot/internal/utils"
 )
 
@@ -16,7 +17,9 @@ func GetTelegramUsers() (*utils.TelegramUsers, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not create TelegramUsers info request: %v", err)
 	}
+	authorization.TokenMutex.RLock()
 	req.Header.Set("Authorization", "Bearer "+utils.AuthToken)
+	authorization.TokenMutex.RUnlock()
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -44,7 +47,9 @@ func getUserInfo(userId string) error {
 	if err != nil {
 		return fmt.Errorf("could not create user info request: %v", err)
 	}
+	authorization.TokenMutex.RLock()
 	req.Header.Set("Authorization", "Bearer "+utils.AuthToken)
+	authorization.TokenMutex.RUnlock()
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -76,7 +81,9 @@ func GetTaskInfo(userId string) (utils.TaskInfoResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not create Task info request: %v", err)
 	}
+	authorization.TokenMutex.RLock()
 	req.Header.Set("Authorization", "Bearer "+utils.AuthToken)
+	authorization.TokenMutex.RUnlock()
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
