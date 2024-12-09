@@ -90,18 +90,17 @@ func returnTaskInfo() {
 			}
 
 			var notificationTime time.Time
-			switch taskInfoNew[j].NotificationIntervals {
-			case "1440": // 1 день
-				notificationTime = taskTime.Add(-1440 * time.Minute).Add(-(*telegramUsers)[i].TimeZoneTimeDutation)
-			case "720": // 12 часов
-				notificationTime = taskTime.Add(-720 * time.Minute).Add(-(*telegramUsers)[i].TimeZoneTimeDutation)
-			case "60": // 1 час
-				notificationTime = taskTime.Add(-60 * time.Minute).Add(-(*telegramUsers)[i].TimeZoneTimeDutation)
-			case "30": // 30 минут
-				notificationTime = taskTime.Add(-30 * time.Minute).Add(-(*telegramUsers)[i].TimeZoneTimeDutation)
-			default: // По умолчанию за 1 час
-				notificationTime = taskTime.Add(-60 * time.Minute).Add(-(*telegramUsers)[i].TimeZoneTimeDutation)
+			intervalMap := map[string]time.Duration{
+				utils.NotificationOneDay.TimeStr:  utils.NotificationOneDay.TimeDur * time.Minute,
+				utils.Notification12Hours.TimeStr: utils.Notification12Hours.TimeDur * time.Minute,
+				utils.Notification1Hour.TimeStr:   utils.Notification1Hour.TimeDur * time.Minute,
+				utils.Notification30Mins.TimeStr:  utils.Notification30Mins.TimeDur * time.Minute,
 			}
+			interval, ok := intervalMap[taskInfoNew[j].NotificationIntervals]
+			if !ok {
+				interval = 60 * time.Minute // Интервал по умолчанию
+			}
+			notificationTime = taskTime.Add(-interval).Add(-(*telegramUsers)[i].TimeZoneTimeDutation)
 			go scheduleMessage(taskID, (*telegramUsers)[i].ChatID, taskInfoNew[j], notificationTime)
 		}
 	}
