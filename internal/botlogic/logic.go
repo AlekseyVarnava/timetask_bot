@@ -39,7 +39,7 @@ func returnTelegramUsers() {
 			continue
 		}
 		for i, user := range *telegramUsersNew {
-			timeZone, err := timeStringToInt(user.TimeZoneOffset)
+			timeZone, err := parseStringToTimeDuration(user.TimeZoneOffset)
 			if err != nil {
 				fmt.Printf("Ошибка парсинга часового пояса: %v\n", err)
 				continue
@@ -142,6 +142,15 @@ func sendMessage(taskID uint32, chatID int64, message string) {
 		taskMutex.Lock()
 		sliceTask[taskID] = true
 		taskMutex.Unlock()
+	} else {
+		fmt.Printf("Повторная попытка отправки сообщения. taskID: %d, chatID: %d\n", taskID, chatID)
+		time.Sleep(time.Second * 2)
+		ok, err := telegram.TgAPI_SendMessage(chatID, message)
+		if ok && err == nil {
+			taskMutex.Lock()
+			sliceTask[taskID] = true
+			taskMutex.Unlock()
+		}
 	}
 }
 
@@ -170,17 +179,17 @@ func parseDateTime(dateStr, timeStr string) (time.Time, error) {
 		parsedTime.Hour(), parsedTime.Minute(), 0, 0, time.Local), nil
 }
 
-func timeStringToInt(timeStr string) (time.Duration, error) {
+func parseStringToTimeDuration(timeStr string) (time.Duration, error) {
 	// Разбиваем строку по разделителю ":"
 	parts := strings.Split(timeStr, ":")
 	if len(parts) == 0 {
-		return -99, fmt.Errorf("ошибка формата часового пояса: %s", timeStr)
+		return 0, fmt.Errorf("ошибка формата часового пояса: %s", timeStr)
 	}
 
 	// Парсим первую часть (часы) в int
 	hours, err := time.ParseDuration(parts[0] + "h")
 	if err != nil {
-		return -99, err
+		return 0, err
 	}
 
 	return hours, nil
