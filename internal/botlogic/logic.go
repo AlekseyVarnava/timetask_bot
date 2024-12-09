@@ -14,13 +14,11 @@ import (
 
 var (
 	telegramUsers *utils.TelegramUsers
-	sliceTask     map[uint32]bool
-	taskMutex     sync.Mutex
+	sliceTask     sync.Map
 )
 
 // Запуск бота
 func Launch() {
-	sliceTask = make(map[uint32]bool)
 	go returnTelegramUsers()
 	time.Sleep(time.Second * 15)
 
@@ -65,30 +63,32 @@ func returnTelegramUsers() {
 }
 
 func returnTaskInfo() {
-	for i := range *telegramUsers {
-		taskInfoNew, err := apitimetask.GetTaskInfo((*telegramUsers)[i].UserID)
+	for _, telegramUser := range *telegramUsers {
+		fmt.Println("sliceTask contents:")
+		sliceTask.Range(func(key, value interface{}) bool {
+			fmt.Printf("Key: %v, Value: %v\n", key, value)
+			return true // продолжить обход
+		})
+
+		taskInfoNew, err := apitimetask.GetTaskInfo(telegramUser.UserID)
 		if err != nil {
 			fmt.Printf("Ошибка получения информации о задаче: %v\n", err)
 			continue
 		}
-		for j := range taskInfoNew {
-			taskID := uint32(taskInfoNew[j].ID)
+		for _, task := range taskInfoNew {
 
-			taskMutex.Lock()
-			_, exists := sliceTask[taskID]
+			_, exists := sliceTask.Load(task.ID)
 			if exists {
-				taskMutex.Unlock()
 				continue // Уже обработана
 			}
-			sliceTask[taskID] = false
-			taskMutex.Unlock()
+			sliceTask.Store(task.ID, false)
 
-			taskTime, boolSend, err := parseDateTime(taskInfoNew[j].Date, taskInfoNew[j].Time)
+			taskTime, boolSend, err := parseDateTime(task.Date, task.Time)
 			if err != nil {
 				fmt.Printf("Ошибка разбора даты и времени: %v\n", err)
 				continue
 			} else if !boolSend {
-				continue
+				continue // время не указано, отправлять уведомление не надо
 			}
 
 			var notificationTime time.Time
@@ -98,17 +98,17 @@ func returnTaskInfo() {
 				utils.Notification1Hour.TimeStr:   utils.Notification1Hour.TimeDur * time.Minute,
 				utils.Notification30Mins.TimeStr:  utils.Notification30Mins.TimeDur * time.Minute,
 			}
-			interval, ok := intervalMap[taskInfoNew[j].NotificationIntervals]
+			interval, ok := intervalMap[task.NotificationIntervals]
 			if !ok {
 				interval = 60 * time.Minute // Интервал по умолчанию
 			}
-			notificationTime = taskTime.Add(-interval).Add(-(*telegramUsers)[i].TimeZoneTimeDutation)
-			go scheduleMessage(taskID, (*telegramUsers)[i].ChatID, taskInfoNew[j], notificationTime)
+			notificationTime = taskTime.Add(-interval).Add(-telegramUser.TimeZoneTimeDutation)
+			go scheduleMessage(task.ID, telegramUser.ChatID, task, notificationTime)
 		}
 	}
 }
 
-func scheduleMessage(taskID uint32, chatID string, taskInfo utils.TaskInfoResponseOne, notificationTime time.Time) {
+func scheduleMessage(taskID int, chatID string, taskInfo utils.TaskInfoResponseOne, notificationTime time.Time) {
 	fmt.Printf("Для задачи taskID:`%d`, chatID:`%s` уведомление будет отправлено: %v\n", taskID, chatID, notificationTime)
 	delay := time.Until(notificationTime)
 	if delay < 0 {
@@ -121,12 +121,10 @@ func scheduleMessage(taskID uint32, chatID string, taskInfo utils.TaskInfoRespon
 
 	select {
 	case <-timer.C:
-		taskMutex.Lock()
-		if sliceTask[taskID] {
-			taskMutex.Unlock()
+		value, exists  := sliceTask.Load(taskID)
+		if exists && value == true {
 			return // Уведомление уже отправлено
 		}
-		taskMutex.Unlock()
 
 		chatIDInt64, err := StringToInt64(chatID)
 		if err != nil {
@@ -146,13 +144,11 @@ func scheduleMessage(taskID uint32, chatID string, taskInfo utils.TaskInfoRespon
 	}
 }
 
-func sendMessage(taskID uint32, chatID int64, message string) {
+func sendMessage(taskID int, chatID int64, message string) {
 	for i := 0; i < utils.RetriesSendMessage; i++ {
 		ok, err := telegram.TgAPI_SendMessage(chatID, message)
 		if ok && err == nil {
-			taskMutex.Lock()
-			sliceTask[taskID] = true
-			taskMutex.Unlock()
+			sliceTask.Store(taskID, true)
 		}
 		time.Sleep(utils.DelayRetriesSendMessage)
 	}

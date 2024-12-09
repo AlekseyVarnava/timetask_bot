@@ -9,7 +9,7 @@ const (
 	BaseUserInfoURL     = "https://api-demo.timetask.ru/api/Account/User?"
 	BaseTaskURL         = "https://api-demo.timetask.ru/api/Task?"
 
-	MaxGoroutines_returnTaskInfo int           = 3 // кол-во макс горутин для returnTaskInfo
+	MaxGoroutines_returnTaskInfo int           = 5 // кол-во макс горутин для returnTaskInfo
 	RetriesSendMessage           int         = 2 // кол-во попыток повторной отправки сообщения
 	DelayRetriesSendMessage      time.Duration = 2 * time.Second
 )
