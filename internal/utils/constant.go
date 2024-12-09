@@ -1,6 +1,7 @@
 package utils
 
 const (
+	MaxGoroutines_returnTaskInfo int = 3
 	GetTelegramUsersURL = "https://api-demo.timetask.ru/api/Telegram/Users"
 	PostLoginURL        = "https://api-demo.timetask.ru/api/Account/Login"
 	GetRefreshURL       = "https://api-demo.timetask.ru/api/Account/refresh"

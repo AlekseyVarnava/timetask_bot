@@ -23,9 +23,18 @@ func Launch() {
 	sliceTask = make(map[uint32]bool)
 	go returnTelegramUsers()
 	time.Sleep(time.Second * 15)
-	for {
-		go returnTaskInfo()
-		time.Sleep(time.Minute * 2)
+
+	ticker := time.NewTicker(2 * time.Minute)
+	defer ticker.Stop()
+
+	semaphore := make(chan struct{}, utils.MaxGoroutines_returnTaskInfo) // Семафор для ограничения горутин returnTaskInfo
+
+	for range ticker.C {
+		semaphore <- struct{}{} // Захватываем слот
+		go func() {
+			defer func() { <-semaphore }() // Освобождаем слот
+			returnTaskInfo()
+		}()
 	}
 }
 
@@ -125,11 +134,11 @@ func scheduleMessage(taskID uint32, chatID string, taskInfo utils.TaskInfoRespon
 		}
 		var message string
 		switch taskInfo.Description {
-			case "":
-				message = fmt.Sprintf("⏰ Напоминание\nЗадача: %s\n• Дата: %s\n• Время: %s\n• Ссылка на задачу: https://demo.timetask.ru/%d",
+		case "":
+			message = fmt.Sprintf("⏰ Напоминание\nЗадача: %s\n• Дата: %s\n• Время: %s\n• Ссылка на задачу: https://demo.timetask.ru/%d",
 				taskInfo.Title, taskInfo.Date, taskInfo.Time, taskID)
-			default:
-				message = fmt.Sprintf("⏰ Напоминание\nЗадача: %s\nОписание: %s\n• Дата: %s\n• Время: %s\n• Ссылка на задачу: https://demo.timetask.ru/%d",
+		default:
+			message = fmt.Sprintf("⏰ Напоминание\nЗадача: %s\nОписание: %s\n• Дата: %s\n• Время: %s\n• Ссылка на задачу: https://demo.timetask.ru/%d",
 				taskInfo.Title, taskInfo.Description, taskInfo.Date, taskInfo.Time, taskID)
 		}
 		sendMessage(taskID, chatIDInt64, message)
