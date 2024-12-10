@@ -75,6 +75,7 @@ func returnTelegramUsers() (*utils.TelegramUsers, error) {
 		for i, telegramUserNew := range *telegramUsersNew {
 			if telegramUserNew.TimeZoneOffset != (*telegramUsers)[i].TimeZoneOffset {
 				log.Printf("Новый часовой пояс у %v", (*telegramUsers)[i].ChatID)
+				log.Printf("Пользователи обновлены: %v", *telegramUsersNew)
 				UpdateTelegramUsers.RUnlock()
 				return telegramUsersNew, nil
 				// UpdateTelegramUsers.Lock()
