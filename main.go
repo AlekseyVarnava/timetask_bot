@@ -9,9 +9,12 @@ import (
 func main() {
 
 	// Авторизация и обновление токена
-	telegram.InitBot()
+	err := telegram.InitBot()
+	if err != nil {
+		panic(err)
+	}
 	authorization.Auth()
 
 	// Запуск бота
 	botlogic.Launch()
-} 
+}

@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
+	"TimeTaskBot/internal/authorization"
 	"TimeTaskBot/internal/utils"
 )
 
@@ -16,7 +18,9 @@ func GetTelegramUsers() (*utils.TelegramUsers, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not create TelegramUsers info request: %v", err)
 	}
+	authorization.TokenMutex.RLock()
 	req.Header.Set("Authorization", "Bearer "+utils.AuthToken)
+	authorization.TokenMutex.RUnlock()
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -44,7 +48,9 @@ func getUserInfo(userId string) error {
 	if err != nil {
 		return fmt.Errorf("could not create user info request: %v", err)
 	}
+	authorization.TokenMutex.RLock()
 	req.Header.Set("Authorization", "Bearer "+utils.AuthToken)
+	authorization.TokenMutex.RUnlock()
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -64,7 +70,7 @@ func getUserInfo(userId string) error {
 		return fmt.Errorf("could not unmarshal user info response: %v", err)
 	}
 
-	fmt.Printf("User Info: %+v\n", userInfo)
+	log.Printf("User Info: %+v\n", userInfo)
 	return nil
 }
 
@@ -76,7 +82,9 @@ func GetTaskInfo(userId string) (utils.TaskInfoResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not create Task info request: %v", err)
 	}
+	authorization.TokenMutex.RLock()
 	req.Header.Set("Authorization", "Bearer "+utils.AuthToken)
+	authorization.TokenMutex.RUnlock()
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -91,7 +99,7 @@ func GetTaskInfo(userId string) (utils.TaskInfoResponse, error) {
 	var taskInfo utils.TaskInfoResponse
 	err = json.Unmarshal(body, &taskInfo)
 	if err != nil {
-		return nil, fmt.Errorf("GetTaskInfo ошибка unmarshal: %v", err)
+		return nil, fmt.Errorf("GetTaskInfo ошибка unmarshal: %v, responseBody:%v", err, string(body))
 	}
 	// if len(taskInfo) > 0 {
 	// 	fmt.Println("Task Info:", taskInfo)

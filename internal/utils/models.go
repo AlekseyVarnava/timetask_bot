@@ -2,6 +2,11 @@ package utils
 
 import "time"
 
+type NotificationIntervals struct {
+	TimeStr string
+	TimeDur time.Duration
+}
+
 type TelegramUsers []struct {
 	UserID               string `json:"userId"`
 	ChatID               string `json:"telegramId"`
