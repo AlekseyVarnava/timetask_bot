@@ -53,38 +53,33 @@ func Launch() {
 func returnTelegramUsers() (*utils.TelegramUsers, error) {
 	telegramUsersNew, err := apitimetask.GetTelegramUsers()
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения пользователей зарегистрированных в Телеграм: %v\n", err)
+		return nil, fmt.Errorf("ошибка получения пользователей зарегистрированных в Телеграм: %v", err)
 	}
 	for i, user := range *telegramUsersNew {
 		timeZone, err := parseStringToTimeDuration(user.TimeZoneOffset)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка парсинга часового пояса: %v\n", err)
+			return nil, fmt.Errorf("ошибка парсинга часового пояса: %v", err)
 		}
 		(*telegramUsersNew)[i].TimeZoneTimeDutation = timeZone
 	}
 	UpdateTelegramUsers.RLock()
+	defer UpdateTelegramUsers.RUnlock()
 	if telegramUsers == nil {
-		UpdateTelegramUsers.RUnlock()
+		log.Printf("Пользователи загружены в бот: %v", *telegramUsersNew)
 		return telegramUsersNew, nil
 	}
 	if len(*telegramUsers) != len(*telegramUsersNew) {
 		log.Printf("Новые пользователи: %v", *telegramUsersNew)
-		UpdateTelegramUsers.RUnlock()
 		return telegramUsersNew, nil
 	} else {
 		for i, telegramUserNew := range *telegramUsersNew {
 			if telegramUserNew.TimeZoneOffset != (*telegramUsers)[i].TimeZoneOffset {
-				log.Printf("Новый часовой пояс у %v", (*telegramUsers)[i].ChatID)
+				log.Printf("Новый часовой пояс у пользователя с chatID: %v", (*telegramUsers)[i].ChatID)
 				log.Printf("Пользователи обновлены: %v", *telegramUsersNew)
-				UpdateTelegramUsers.RUnlock()
 				return telegramUsersNew, nil
-				// UpdateTelegramUsers.Lock()
-				// telegramUsers = telegramUsersNew
-				// UpdateTelegramUsers.Unlock()
 			}
 		}
 	}
-	UpdateTelegramUsers.RUnlock()
 	return nil, nil
 }
 
