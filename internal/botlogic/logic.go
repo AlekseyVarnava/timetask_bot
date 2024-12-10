@@ -132,10 +132,11 @@ func scheduleMessage(taskID int, chatID string, taskInfo utils.TaskInfoResponseO
 		log.Printf("Время уведомления для задачи %d уже прошло\n", taskID)
 		return
 	}
-
+	log.Printf("Для задачи taskID:`%d`, chatID:`%s` уведомление будет отправлено: %v\n", taskID, chatID, notificationTime)
+	
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
-
+	
 	select {
 	case <-timer.C:
 		value, exists := sliceTask.Load(taskID)
@@ -149,7 +150,6 @@ func scheduleMessage(taskID int, chatID string, taskInfo utils.TaskInfoResponseO
 			return
 		}
 		message := formatMessage(taskInfo, taskID)
-		log.Printf("Для задачи taskID:`%d`, chatID:`%s` уведомление будет отправлено: %v\n", taskID, chatID, notificationTime)
 		sendMessage(chatIDInt64, taskID, message)
 	}
 }
