@@ -63,13 +63,19 @@ func returnTelegramUsers() (*utils.TelegramUsers, error) {
 		(*telegramUsersNew)[i].TimeZoneTimeDutation = timeZone
 	}
 	UpdateTelegramUsers.RLock()
+	if telegramUsers == nil {
+		UpdateTelegramUsers.RUnlock()
+		return telegramUsersNew, nil
+	}
 	if len(*telegramUsers) != len(*telegramUsersNew) {
-		log.Println("Новые пользователи: %v", *telegramUsersNew)
+		log.Printf("Новые пользователи: %v", *telegramUsersNew)
+		UpdateTelegramUsers.RUnlock()
 		return telegramUsersNew, nil
 	} else {
 		for i, telegramUserNew := range *telegramUsersNew {
 			if telegramUserNew.TimeZoneOffset != (*telegramUsers)[i].TimeZoneOffset {
-				log.Println("Новый часовой пояс у %v", (*telegramUsers)[i].ChatID)
+				log.Printf("Новый часовой пояс у %v", (*telegramUsers)[i].ChatID)
+				UpdateTelegramUsers.RUnlock()
 				return telegramUsersNew, nil
 				// UpdateTelegramUsers.Lock()
 				// telegramUsers = telegramUsersNew
