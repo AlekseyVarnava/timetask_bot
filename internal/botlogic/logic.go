@@ -85,7 +85,9 @@ func returnTelegramUsers() (*utils.TelegramUsers, error) {
 
 func returnTaskInfo() {
 	UpdateTelegramUsers.RLock()
-	for _, telegramUser := range *telegramUsers {
+	telegramUsersSnapshot := *telegramUsers // создаю копию, чтобы не держать блокировку Mutex
+	UpdateTelegramUsers.RUnlock()
+	for _, telegramUser := range telegramUsersSnapshot {
 		taskInfoNew, err := apitimetask.GetTaskInfo(telegramUser.UserID)
 		if err != nil {
 			log.Printf("Ошибка получения информации о задаче: %v\n", err)
@@ -122,7 +124,6 @@ func returnTaskInfo() {
 			go scheduleMessage(task.ID, telegramUser.ChatID, task, notificationTime)
 		}
 	}
-	UpdateTelegramUsers.RUnlock()
 }
 
 func scheduleMessage(taskID int, chatID string, taskInfo utils.TaskInfoResponseOne, notificationTime time.Time) {
