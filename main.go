@@ -13,7 +13,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	telegram.StartBot()
+	go telegram.StartBot()
 	authorization.Auth()
 
 	// Запуск бота
